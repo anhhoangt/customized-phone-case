@@ -3,7 +3,9 @@
 import HandleComponent from "@/components/HandleComponent";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { cn, formatPrice } from "@/lib/utils";
+
 import NextImage from "next/image";
 import { Rnd } from "react-rnd";
 import { RadioGroup } from "@headlessui/react";
