@@ -14,7 +14,6 @@ const PHONES = [
   "/testimonials/5.jpg",
   "/testimonials/6.jpg",
 ];
-console.log(PHONES[1]);
 
 function splitArray<T>(array: Array<T>, numParts: number) {
   const result: Array<Array<T>> = [];

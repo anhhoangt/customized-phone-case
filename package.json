@@ -1,5 +1,6 @@
 {
   "name": "ecommerce-app",
+  "type": "module",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -22,6 +23,7 @@
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.5",
+    "@react-email/components": "^0.0.19",
     "@tanstack/react-query": "^5.48.0",
     "@uploadthing/react": "^6.6.0",
     "add": "^2.0.6",
@@ -37,6 +39,7 @@
     "react-dom-confetti": "^0.2.0",
     "react-dropzone": "^14.2.3",
     "react-rnd": "^10.4.11",
+    "resend": "^3.4.0",
     "shadcn-ui": "^0.8.0",
     "sharp": "^0.32.6",
     "stripe": "^16.0.0",
