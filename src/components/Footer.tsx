@@ -20,7 +20,7 @@ const Footer = () => {
                 href="#"
                 className="text-sm text-muted-foreground hover:text-gray-600"
               >
-                Terms
+                Terms & Conditions
               </Link>
               <Link
                 href="#"
