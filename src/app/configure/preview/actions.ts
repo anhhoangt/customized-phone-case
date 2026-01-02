@@ -5,14 +5,21 @@ import { db } from '@/db'
 import { stripe } from '@/lib/stripe'
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
 import { Order } from '@prisma/client'
+import { z } from 'zod'
+
+const createCheckoutSessionSchema = z.object({
+  configId: z.string().min(1),
+})
 
 export const createCheckoutSession = async ({
   configId,
 }: {
   configId: string
 }) => {
+  const validatedData = createCheckoutSessionSchema.parse({ configId })
+
   const configuration = await db.configuration.findUnique({
-    where: { id: configId },
+    where: { id: validatedData.configId },
   })
 
   if (!configuration) {
@@ -24,6 +31,10 @@ export const createCheckoutSession = async ({
 
   if (!user) {
     throw new Error('You need to be logged in')
+  }
+
+  if (configuration.userId && configuration.userId !== user.id) {
+    throw new Error('You do not have permission to checkout this configuration')
   }
 
   const { finish, material } = configuration
@@ -41,8 +52,6 @@ export const createCheckoutSession = async ({
       configurationId: configuration.id,
     },
   })
-
-  console.log(user.id, configuration.id)
 
   if (existingOrder) {
     order = existingOrder

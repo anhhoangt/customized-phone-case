@@ -55,13 +55,16 @@ model Configuration {
   material        CaseMaterial?
   finish          CaseFinish?
   croppedImageUrl String?
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
   Order           Order[]
 }
 
 model User {
-  id    String  @id @default(cuid())
-  email String
-  Order Order[]
+  id             String          @id @default(cuid())
+  email          String
+  Order          Order[]
+  configurations Configuration[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

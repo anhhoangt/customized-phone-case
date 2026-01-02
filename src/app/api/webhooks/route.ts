@@ -17,14 +17,21 @@ export async function POST(req: Request) {
       return new Response('Invalid signature', { status: 400 })
     }
 
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      console.error('Missing STRIPE_WEBHOOK_SECRET environment variable')
+      return new Response('Server configuration error', { status: 500 })
+    }
+
     const event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     )
 
     if (event.type === 'checkout.session.completed') {
-      if (!event.data.object.customer_details?.email) {
+      const customerEmail = event.data.object.customer_details?.email
+      if (!customerEmail) {
         throw new Error('Missing user email')
       }
 
@@ -39,8 +46,16 @@ export async function POST(req: Request) {
         throw new Error('Invalid request metadata')
       }
 
-      const billingAddress = session.customer_details!.address
-      const shippingAddress = session.shipping_details!.address
+      const customerDetails = session.customer_details
+      const shippingDetails = session.shipping_details
+
+      if (!customerDetails?.address || !shippingDetails?.address) {
+        throw new Error('Missing address information')
+      }
+
+      const billingAddress = customerDetails.address
+      const shippingAddress = shippingDetails.address
+      const customerName = customerDetails.name ?? 'Unknown'
 
       const updatedOrder = await db.order.update({
         where: {
@@ -50,42 +65,45 @@ export async function POST(req: Request) {
           isPaid: true,
           shippingAddress: {
             create: {
-              name: session.customer_details!.name!,
-              city: shippingAddress!.city!,
-              country: shippingAddress!.country!,
-              postalCode: shippingAddress!.postal_code!,
-              street: shippingAddress!.line1!,
-              state: shippingAddress!.state,
+              name: customerName,
+              city: shippingAddress.city ?? '',
+              country: shippingAddress.country ?? '',
+              postalCode: shippingAddress.postal_code ?? '',
+              street: shippingAddress.line1 ?? '',
+              state: shippingAddress.state ?? null,
             },
           },
           billingAddress: {
             create: {
-              name: session.customer_details!.name!,
-              city: billingAddress!.city!,
-              country: billingAddress!.country!,
-              postalCode: billingAddress!.postal_code!,
-              street: billingAddress!.line1!,
-              state: billingAddress!.state,
+              name: customerName,
+              city: billingAddress.city ?? '',
+              country: billingAddress.country ?? '',
+              postalCode: billingAddress.postal_code ?? '',
+              street: billingAddress.line1 ?? '',
+              state: billingAddress.state ?? null,
             },
           },
         },
       })
 
+      const fromEmail = process.env.FROM_EMAIL ?? 'noreply@example.com'
+      const fromName = process.env.FROM_NAME ?? 'YellowMonkey'
+
       await resend.emails.send({
-        from: "YellowMonkey <anhhoang0319@gmail.com>",
-        to: [event.data.object.customer_details.email],
+        from: `${fromName} <${fromEmail}>`,
+        to: [customerEmail],
         subject: 'Thanks for your order!',
         react: OrderReceivedEmail({
           orderId,
           orderDate: updatedOrder.createdAt.toLocaleDateString(),
           // @ts-ignore
           shippingAddress: {
-            name: session.customer_details!.name!,
-            city: shippingAddress!.city!,
-            country: shippingAddress!.country!,
-            postalCode: shippingAddress!.postal_code!,
-            street: shippingAddress!.line1!,
-            state: shippingAddress!.state,
+            name: customerName,
+            city: shippingAddress.city ?? '',
+            country: shippingAddress.country ?? '',
+            postalCode: shippingAddress.postal_code ?? '',
+            street: shippingAddress.line1 ?? '',
+            state: shippingAddress.state ?? null,
           },
         }),
       })
@@ -93,7 +111,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ result: event, ok: true })
   } catch (err) {
-    console.error(err)
+    console.error('Webhook processing error:', err instanceof Error ? err.message : 'Unknown error')
 
     return NextResponse.json(
       { message: 'Something went wrong', ok: false },
